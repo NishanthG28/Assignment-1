@@ -1,0 +1,115 @@
+---
+title: "Assignment-!"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-09-21"
+output: html_document
+---
+
+```{r}
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("readxl")  
+install.packages("ggplot2")  
+library(readxl)  
+library(ggplot2) 
+employee_data <- read_excel("C:/Users/gadda/Downloads/Typical_Employee_Survey_Data.xlsx")
+colnames(employee_data) <- c(
+  "Age", "Gender", "Job_Satisfaction", "Important_Job_Characteristic",
+  "Years_At_Employer", "Promotion_Likelihood", "Decision_Making", 
+  "Budget_Participation", "Pride_In_Organization", "Turn_Down_Job_Offer", 
+  "Workplace_Relations"
+)
+summary(employee_data$Age)
+summary(employee_data$Gender)
+summary(employee_data$Job_Satisfaction)
+summary(employee_data$Important_Job_Characteristic)
+summary(employee_data$Years_At_Employer)
+summary(employee_data$Promotion_Likelihood)
+summary(employee_data$Decision_Making)
+summary(employee_data$Budget_Participation)
+summary(employee_data$Pride_In_Organization)
+summary(employee_data$Turn_Down_Job_Offer)
+summary(employee_data$Workplace_Relations)
+
+
+boxplot(employee_data$Age, main="Boxplot of Age", ylab="Age")
+boxplot(table(employee_data$Gender), main="Gender Distribution", ylab="Gender")
+boxplot(employee_data$Job_Satisfaction, main="Boxplot of Job Satisfaction", ylab="Job Satisfaction")
+boxplot(employee_data$Important_Job_Characteristic, main="Boxplot of Important Job Characteristic", ylab="Job Characteristic")
+boxplot(employee_data$Years_At_Employer, main="Boxplot of Years at Employer", ylab="Years at Employer")
+boxplot(employee_data$Promotion_Likelihood, main="Boxplot of Promotion Likelihood", ylab="Promotion Likelihood")
+boxplot(employee_data$Decision_Making, main="Boxplot of Decision Making", ylab="Decision Making")
+boxplot(employee_data$Budget_Participation, main="Boxplot of Budget Participation", ylab="Budget Participation")
+boxplot(employee_data$Pride_In_Organization, main="Boxplot of Pride in Organization", ylab="Pride Level")
+boxplot(employee_data$Turn_Down_Job_Offer, main="Boxplot of Turn Down Job Offer", ylab="Likelihood of Turning Down Job Offer")
+boxplot(employee_data$Workplace_Relations, main="Boxplot of Workplace Relations", ylab="Workplace Relations")
+
+
+employee_data$Gender <- as.factor(employee_data$Gender)
+employee_data$Job_Satisfaction <- as.factor(employee_data$Job_Satisfaction)
+employee_data$Important_Job_Characteristic <- as.factor(employee_data$Important_Job_Characteristic)
+employee_data$Promotion_Likelihood <- as.factor(employee_data$Promotion_Likelihood)
+employee_data$Decision_Making <- as.factor(employee_data$Decision_Making)
+employee_data$Budget_Participation <- as.factor(employee_data$Budget_Participation)
+employee_data$Pride_In_Organization <- as.factor(employee_data$Pride_In_Organization)
+employee_data$Turn_Down_Job_Offer <- as.factor(employee_data$Turn_Down_Job_Offer)
+employee_data$Workplace_Relations <- as.factor(employee_data$Workplace_Relations)
+
+hist(employee_data$Age, main="Histogram of Age", xlab="Age", col="yellow")
+
+
+pie(table(employee_data$Gender), main="Gender Distribution", col=c("blue", "pink"), labels=c("Male", "Female"))
+
+pie(table(employee_data$Job_Satisfaction), main="Job Satisfaction Distribution", 
+    col=rainbow(length(table(employee_data$Job_Satisfaction))), 
+    labels=c("Very Satisfied", "Moderately Satisfied", "A Little Dissatisfied", "Very Dissatisfied"))
+
+pie(table(employee_data$Important_Job_Characteristic), main="Important Job Characteristic", 
+    col=rainbow(length(table(employee_data$Important_Job_Characteristic))), 
+    labels=c("High Income", "No Danger of Being Fired", "Flexible Hours", "Opportunities for Advancement", "Enjoying the Work"))
+
+hist(employee_data$Years_At_Employer, main="Years at Employer", xlab="Years", col="orange")
+
+barplot(table(employee_data$Promotion_Likelihood),main="PromotionLikelihood",col=rainbow(length(table(employee_data$Promotion_Likelihood))),names.arg=c("Very Likely", "Likely", "Not Sure", "Unlikely", "Very Unlikely"),xlab="Promotion Likelihood", ylab="Count")
+
+barplot(table(employee_data$Decision_Making),main="Decision Making Involvement",col=rainbow(length(table(employee_data$Decision_Making))),names.arg=c("Always", "Much of the Time", "Sometimes", "Never"), xlab="Decision Making Involvement",ylab="Count")
+
+pie(table(employee_data$Budget_Participation), main="Budget Participation", 
+    col=c("green", "blue"), labels=c("Yes", "No"))
+
+pie(table(employee_data$Pride_In_Organization), main="Pride in Organization", 
+    col=rainbow(length(table(employee_data$Pride_In_Organization))), 
+    labels=c("Very Proud", "Somewhat Proud", "Indifferent", "Not at All Proud"))
+
+barplot(table(employee_data$Turn_Down_Job_Offer), main="Turn Down Job Offer Likelihood", col=rainbow(length(table(employee_data$Turn_Down_Job_Offer))), names.arg=c("Very Likely", "Likely", "Not Sure", "Unlikely", "Very Unlikely"), xlab="Likelihood", ylab="Count")
+
+
+pie(table(employee_data$Workplace_Relations), main="Workplace Relations", 
+    col=rainbow(length(table(employee_data$Workplace_Relations))), 
+    labels=c("Very Good", "Good", "So So", "Bad", "Very Bad"))
+
+
+
+plot(employee_data$Age, employee_data$Years_At_Employer, main="Scatter Plot: Age vs Years at Employer", xlab="Age", ylab="Years at Employer", pch=19, col="blue")
+
+plot(employee_data$Years_At_Employer, as.numeric(employee_data$Job_Satisfaction), main="Scatter Plot: Years at employer vs Job Satisfaction", xlab="Years_At_Employer", ylab="Job Satisfaction (Numeric Scale)", pch=19, col="green")
+
+
+plot(employee_data$Years_At_Employer, employee_data$Promotion_Likelihood, main="Scatter Plot: Years at employer vs promotion likelihood", xlab="Years_At_Employer", ylab="Promotion_Likelihood", pch=19, col="red")
+
+
+plot(employee_data$Age, employee_data$Decision_Making, main="Scatter Plot: Age vs Decision_Making", xlab="Age", ylab="Decision_Making", pch=19, col="lightblue")
+
+
+plot(employee_data$Important_Job_Characteristic, employee_data$Years_At_Employer, main="Scatter Plot: Important_Job_Characteristic vs Years_At_Employer", xlab="Important_Job_Characteristic", ylab="Years_At_Employer", pch=19, col="blue", labels=c("High Income", "No Danger of Being Fired", "Flexible Hours", "Opportunities for Advancement", "Enjoying the Work"))
+
+
+
+
+
+
+
+
+
+
+
