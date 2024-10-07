@@ -1,0 +1,121 @@
+---
+title: "Assignment-4"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-10-04"
+output: html_document
+---
+
+```{r}
+library(fpp2)
+library(TTR)
+df <- read.csv("C:/Users/gadda/OneDrive/Desktop/BF/1979-2021 gold prices.csv")
+
+df$United.States.USD <- as.numeric(df$United.States.USD)
+
+gold_prices <- ts(df$United.States.USD, start=c(1979,1), frequency=12)
+
+# 1. Mean Forecast
+mean_forecast <- meanf(gold_prices, h=36)
+plot(mean_forecast, main="Mean Forecast for Gold Prices")
+mtext("The forecast seems to not capture the dynamics of gold prices, 
+      as the values remain constant around the mean values.", side=1, line=4, cex=0.8)
+
+# 2. Naive Forecast
+naive_forecast <- naive(gold_prices, h=36)
+plot(naive_forecast, main="Naive Forecast for Gold Prices")
+mtext("The Naive forecast seems slightly better than the mean forecast
+      but lacks responsiveness the historical and seasonal trends.", side=1, line=4, cex=0.8)
+
+# 3. Random Walk Forecast (with and without drift)
+rwf_forecast <- rwf(gold_prices, h=36)
+plot(rwf_forecast, main="Random Walk Forecast for Gold Prices")
+mtext("The Random Walk Forecast without drift seems to follow recent trends
+      but doesnot add directionality.", side=1, line=4, cex=0.8)
+
+rwf_forecast_drift <- rwf(gold_prices, h=36, drift=TRUE)
+plot(rwf_forecast_drift, main="Random Walk with Drift Forecast for Gold Prices")
+mtext("The Random Walk Forecast with drift seems to add dimentionality 
+      over the method without drift showing an upward trend.", side=1, line=4, cex=0.8)
+
+# 4. Seasonal Naive Forecast
+snaive_forecast <- snaive(gold_prices, h=36)
+plot(snaive_forecast, main="Seasonal Naive Forecast for Gold Prices")
+mtext("The seasonal pattern captured here suggest fluctuating signs of gold prices.", side=1, line=4, cex=0.8)
+
+# 5. Moving Averages Forecast with different orders
+MA5_forecast <- ma(gold_prices, order=5)
+MA9_forecast <- ma(gold_prices, order=9)
+plot(gold_prices, main="Gold Prices with Moving Averages")
+lines(MA5_forecast, col="red")
+lines(MA9_forecast, col="blue")
+mtext("The moving averages method smoothes out short-term noise, 
+      focusing on long term trends.", side=1, line=4, cex=0.8)
+
+# 6. Decomposition using ETS (Error, Trend, Seasonality model)
+ets_forecast <- ets(gold_prices)
+plot(ets_forecast)
+mtext("The Decomposition using ETS isolates trends and patterns,
+      helping us understand the components of price change.", side=1, line=4, cex=0.8)
+
+# 7. Holt-Winters Forecasting
+HW_forecast <- HoltWinters(gold_prices)
+forecast_HW <- forecast(HW_forecast, h=36)
+plot(forecast_HW, main="Holt-Winters Forecast for Gold Prices")
+mtext("The Holts-Winters Forecasting shows an upward trend,
+      capturing both trend and seasonality.", side=1, line=4, cex=0.8)
+
+#8. Forecasting using ETS model
+ets_model <- ets(gold_prices)
+forecast_ets <- forecast(ets_model, h=36)
+plot(forecast_ets, main="ETS Forecast for Gold Prices")
+mtext("The ETS model also shows an upward trend by the error,
+      trend and seasonality components.", side=1, line=4, cex=0.8)
+
+
+ymin <- min(mean_forecast$mean, naive_forecast$mean, rwf_forecast$mean, 
+            rwf_forecast_drift$mean, snaive_forecast$mean, forecast_ets$mean, HW_forecast$fitted)
+ymax <- max(mean_forecast$mean, naive_forecast$mean, rwf_forecast$mean, 
+            rwf_forecast_drift$mean, snaive_forecast$mean, forecast_ets$mean, HW_forecast$fitted)
+
+# Plot Mean Forecast and set y-axis limits
+plot(mean_forecast$mean, type="l", col="black", lwd=2, ylim=c(ymin, ymax), 
+     main="Forecast Comparison for Gold Prices", ylab="Price (USD)", xlab="Time")
+lines(naive_forecast$mean, col="red", lwd=2)
+lines(rwf_forecast$mean, col="green", lwd=2)
+lines(rwf_forecast_drift$mean, col="orange", lwd=2)
+lines(snaive_forecast$mean, col="purple", lwd=2)
+lines(forecast_ets$mean, col="blue", lwd=2)
+lines(forecast_HW$fitted, col="brown", lwd=2)
+legend("topright", legend=c("Mean", "Naive", "RW", "RW Drift", "Seasonal Naive", "ETS", "Holt-Winters"),
+       col=c("black", "red", "green", "orange", "purple", "blue", "brown"), lty=1, lwd=2)
+
+
+
+
+
+mtext("Seasonal Naive, ETS, and Holt-Winters, Random Walk(with Drift) capture trends and seasonality best. 
+      Mean, Naive, and Random Walk(with out drift) methods show limited adaptability.", side=1, line=4, cex=0.8)
+
+
+
+rmse_mean <- accuracy(mean_forecast)[, "RMSE"]
+rmse_naive <- accuracy(naive_forecast)[, "RMSE"]
+rmse_rw <- accuracy(rwf_forecast)[, "RMSE"]
+rmse_rw_drift <- accuracy(rwf_forecast_drift)[, "RMSE"]
+rmse_snaive <- accuracy(snaive_forecast)[, "RMSE"]
+rmse_ets <- accuracy(forecast_ets)[, "RMSE"]
+rmse_hw <- accuracy(HW_forecast$fitted, gold_prices)[, "RMSE"]
+
+# Print RMSE for all models
+cat("\nRMSE for Each Model:\n")
+cat("\nMean Forecast RMSE:", rmse_mean, "\n")
+cat("\nNaive Forecast RMSE:", rmse_naive, "\n")
+cat("\nRandom Walk Forecast RMSE:", rmse_rw, "\n")
+cat("\nRandom Walk with Drift Forecast RMSE:", rmse_rw_drift, "\n")
+cat("\nSeasonal Naive Forecast RMSE:", rmse_snaive, "\n")
+cat("\nETS Forecast RMSE:", rmse_ets, "\n")
+cat("\nHolt-Winters Forecast RMSE:", rmse_hw, "\n")
+print("The ETS Forecasting seems to be a better model than the remaining models,given the lowest Root Mean Square Error.")
+
+```
+
