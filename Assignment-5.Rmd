@@ -1,0 +1,89 @@
+---
+title: "Assignment-5"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-10-09"
+output: html_document
+---
+
+```{r}
+
+library(fpp2)
+library(TTR)
+library(forecast)
+
+df <- read.csv("C:/Users/gadda/OneDrive/Desktop/BF/1979-2021 gold prices.csv")
+
+df$United.States.USD <- as.numeric(df$United.States.USD)
+
+gold_prices <- ts(df$United.States.USD, start = c(1979, 1), frequency = 12)
+plot(gold_prices)
+Acf(gold_prices)
+stl_decomp_gold_prices <- stl(gold_prices, s.window = "periodic")
+
+plot(stl_decomp_gold_prices, main = "STL Decomposition of Gold Prices")
+
+seasonally_adjusted_gold_prices <- seasadj(stl_decomp_gold_prices)
+plot(gold_prices, type = "l", col = "blue", lwd = 2, main = "Original and Seasonally Adjusted Gold Prices")
+lines(seasonally_adjusted_gold_prices, col = "red", lwd = 1)
+legend("topright", legend = c("Original", "Seasonally Adjusted"), col = c("blue", "red"), lty = 1)
+
+
+mtext("The seasonally adjusted gold prices overlap closely with the original prices of gold showing the price of gold is not sesonally dependent")
+f_stl_gold_prices <- forecast(stl_decomp_gold_prices, h = 30)
+plot(f_stl_gold_prices, main = "Forecasted Gold Prices")
+
+
+
+
+```
+
+```{r}
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+install.packages("tidyverse")
+library(fpp2)
+library(readxl)
+library(forecast)
+library(tidyverse)
+
+file_path <- "C:/Users/gadda/Downloads/SeriesReport-202410092239-V.xlsx"
+retail_sales <- read_excel(file_path, skip = 6)
+
+
+print(head(retail_sales))
+
+
+retail_sales <- retail_sales %>%
+  mutate(
+    Period = as.Date(paste0("01-", Period), format = "%d-%b-%Y"),
+    Value = as.numeric(Value)
+  )
+
+retail_sales <- retail_sales %>% filter(!is.na(Value))
+
+ts_retail_sales <- ts(retail_sales$Value, start = c(year(min(retail_sales$Period)), month(min(retail_sales$Period))), frequency = 12)
+
+
+
+plot(ts_retail_sales, main = "Retail Sales Over Time", ylab = "Sales Value", xlab = "Time", col = "blue", lwd = 2)
+mtext("Trying it with retail sales data in USA:")
+
+Acf(ts_retail_sales)
+
+stl_decomp_retail_sales <- stl(ts_retail_sales, s.window = "periodic")
+plot(stl_decomp_retail_sales, main = "STL Decomposition of Retail Sales")
+
+seasonally_adjusted <- seasadj(stl_decomp_retail_sales)
+plot(ts_retail_sales, type = "l", col = "black", lwd = 2, main = "Original and Seasonally Adjusted Retail Sales")
+lines(seasonally_adjusted, col = "red", lwd = 2)
+legend("topright", legend = c("Original", "Seasonally Adjusted"), col = c("black", "red"), lty = 1)
+
+mtext("The Seasonally adjusted and the Original data do not overlap,
+      showing a seasonally dependent retail prices.")
+f_stl_retail_sales <- forecast(stl_decomp_retail_sales, h = 30)
+plot(f_stl_retail_sales, main = "Forecasted Retail Sales")
+
+```
+
+
+
