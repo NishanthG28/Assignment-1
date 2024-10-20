@@ -1,0 +1,121 @@
+---
+title: "MP-1"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-10-14"
+output: html_document
+---
+
+
+```{r}
+library(fpp)
+
+flightVolume <- read.csv("C:/Users/gadda/Downloads/flightVolume.csv")
+
+reslong_ts <- ts(flightVolume$reslong , c(1976,1), frequency = 12)
+
+plot(reslong_ts)
+mtext("Clear upward trend with recurring seasonal patterns", side = 1, line = 4)
+
+Acf(reslong_ts)
+mtext("Significant spikes at lag 12 indicate yearly seasonality",  side = 1, line = 4)
+
+summary(Acf(reslong_ts))
+
+stl_decomp <- stl(reslong_ts , s.window  = "periodic")
+plot(stl_decomp)
+mtext("Trend and seasonality clearly separated", side = 1, line = 4)
+stl_forecast <- forecast(stl_decomp)
+summary(stl_decomp)
+cat("The trend component is very strong, so using models like Holt-Winters or STL that capture both trend and seasonality will be effective.\n")
+cat("The seasonality component is moderate but significant, indicating that seasonal adjustments are important for accurate forecasts.\n")
+cat("The remainder is relatively small but should be accounted for in the uncertainty of the forecasts.\n")
+
+h =12
+
+naive_forecast <- naive(reslong_ts , h)
+plot(naive_forecast , main = "Naive Forecast")
+mtext("Forecast assumes future values equal the last observed value", side = 1, line = 4)
+
+
+mean_forecast <- meanf(reslong_ts , h)
+plot(mean_forecast , main = "Mean Forecast")
+mtext("Forecast assumes future values equal the mean of past values",  side = 1, line = 4)
+
+Holt_Winters_forecast <- HoltWinters(reslong_ts)
+forecast_HW <- forecast(Holt_Winters_forecast , h)
+plot(Holt_Winters_forecast , main = "Holt Winters without drift Forecast")
+mtext("Captures both trend and seasonality",  side = 1, line = 4)
+
+Holt_Winters_drift_forecast <- HoltWinters(reslong_ts )
+forecast_HW_drift <- forecast(Holt_Winters_drift_forecast , , drift = TRUE , h)
+plot(Holt_Winters_forecast , main = "Holt Winters with drift Forecast")
+mtext("Accounts for trend changes over time with drift", side = 1, line = 4)
+
+decomp_add <- decompose(reslong_ts, type = "additive")
+plot(decomp_add)
+trend_component_add <- decomp_add$trend
+random_component_add <- decomp_add$random
+decomp_add_trend <- forecast(trend_component_add , h)
+decomp_add_random<-forecast(random_component_add ,h)
+plot(decomp_add_trend, main="Decomposition Forecast-trend component Additive")
+mtext("Forecast based on the trend component only",  side = 1, line = 4)
+plot(decomp_add_random, main="Decomposition Forecast-random-component Additive")
+mtext("Forecast based on the random component only",  side = 1, line = 4)
+
+
+
+
+decomp_mul <- decompose(reslong_ts, type = "multiplicative")
+plot(decomp_mul)
+trend_component_mul <- decomp_mul$trend
+random_component_mul <- decomp_mul$random
+decomp_mul_trend <- forecast(trend_component_mul , h)
+decomp_mul_random<-forecast(random_component_mul ,h)
+plot(decomp_mul_trend, main="Decomposition Forecast-trend component Multiplicative")
+mtext("Captures proportional changes in trend",  side = 1, line = 4)
+plot(decomp_mul_random, main="Decomposition Forecast-random-component Multiplicative")
+mtext("Captures proportional changes in residuals",  side = 1, line = 4)
+
+
+rmse_naive <- accuracy(naive_forecast)[ ,"RMSE"]
+rmse_mean <- accuracy(mean_forecast)[ ,"RMSE"]
+rmse_Holt_Winters_forecast <- accuracy(forecast_HW)[ ,"RMSE"]
+rmse_Holt_Winters_drift_forecast <- accuracy(forecast_HW_drift)[ ,"RMSE"]
+rmse_stl <- accuracy(stl_forecast)[ ,"RMSE"]
+rmse_decomp_add_trend <- accuracy(decomp_add_trend)[ ,"RMSE"]
+rmse_decomp_add_random <- accuracy(decomp_add_random)[ ,"RMSE"]
+rmse_decomp_mul_trend <- accuracy(decomp_mul_trend)[ ,"RMSE"]
+rmse_decomp_mul_random <- accuracy(decomp_mul_random)[ ,"RMSE"]
+
+cat("\nRMSE for Each Model:\n")
+cat("\nNaive Forecast RMSE:", rmse_naive, "\n")
+cat("Mean Forecast RMSE:", rmse_mean, "\n")
+cat("Holt-Winters Forecast RMSE:", rmse_Holt_Winters_forecast, "\n")
+cat("Holt-Winters with Drift RMSE:", rmse_Holt_Winters_drift_forecast, "\n")
+cat("STL Forecast RMSE:", rmse_stl, "\n")
+cat("Additive Decomposition Trend RMSE:", rmse_decomp_add_trend, "\n")
+cat("Additive Decomposition Random RMSE:", rmse_decomp_add_random, "\n")
+cat("Multiplicative Decomposition Trend RMSE:", rmse_decomp_mul_trend, "\n")
+cat("Multiplicative Decomposition Random RMSE:", rmse_decomp_mul_random, "\n")
+
+model_names <- c("Naive", "Mean", "Holt-Winters", "Holt-Winters with Drift", 
+                 "STL", "Additive Trend", "Additive Random", 
+                 "Multiplicative Trend", "Multiplicative Random")
+
+rmse_values <- c(rmse_naive, rmse_mean, rmse_Holt_Winters_forecast, 
+                 rmse_Holt_Winters_drift_forecast, rmse_stl, 
+                 rmse_decomp_add_trend, rmse_decomp_add_random, 
+                 rmse_decomp_mul_trend, rmse_decomp_mul_random)
+
+rmse_table <- data.frame(Model = model_names, RMSE = rmse_values)
+
+rmse_table <- rmse_table[order(rmse_table$RMSE), ]
+
+print(rmse_table)
+
+cat("Holt-Winters selected for balanced RMSE (0.426) with trend + seasonality; Decomposition models for best RMSE (0.025) on trend.",  side = 1, line = 4)
+
+```
+
+
+
