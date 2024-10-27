@@ -1,0 +1,144 @@
+---
+title: "Assignment-MP2"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r}
+library(fpp)
+insurance <- read.csv("C:/Users/gadda/Downloads/insurance.csv")
+quotes_ts <- ts(insurance$Quotes , start=c(2002,1), frequency = 12)
+plot(quotes_ts)
+
+mtext("There is no clear trend or seasonality with lots of fluctuations
+      , also since there are frequent drops, not just one,
+      considering the whole history would be a better option",  side = 1, line = 4)
+
+
+Acf(quotes_ts)
+mtext("No seasonality observed",  side = 1, line = 4)
+
+summary(Acf(quotes_ts))
+
+stl_decomp <- stl(quotes_ts , s.window  = "periodic")
+plot(stl_decomp)
+mtext("No clear trend and seasonality ", side = 1, line = 4)
+stl_forecast <- forecast(stl_decomp)
+summary(stl_decomp)
+cat("The trend component is very week, so using decomposition models would be effective.\n")
+
+h =12
+
+naive_forecast <- naive(quotes_ts , h)
+plot(naive_forecast , main = "Naive Forecast")
+mtext("Forecast assumes future values equal the last observed value", side = 1, line = 4)
+
+
+mean_forecast <- meanf(quotes_ts , h)
+plot(mean_forecast , main = "Mean Forecast")
+mtext("Forecast assumes future values equal the mean of past values",  side = 1, line = 4)
+
+Holt_Winters_forecast <- HoltWinters(quotes_ts)
+forecast_HW <- forecast(Holt_Winters_forecast , h)
+plot(Holt_Winters_forecast , main = "Holt Winters without drift Forecast")
+mtext("Captures both trend and seasonality",  side = 1, line = 4)
+
+Holt_Winters_drift_forecast <- HoltWinters(quotes_ts )
+forecast_HW_drift <- forecast(Holt_Winters_drift_forecast , , drift = TRUE , h)
+plot(Holt_Winters_forecast , main = "Holt Winters with drift Forecast")
+mtext("Accounts for trend changes over time with drift", side = 1, line = 4)
+
+ses_forecast <- ses(quotes_ts, h)
+plot(ses_forecast)
+mtext("SES can be effective because it uses a weighted average of past values
+      , putting more weight on recent observations without 
+      explicitly modeling trend or seasonality.",side=1,line=4)
+
+decomp_add <- decompose(quotes_ts, type = "additive")
+plot(decomp_add)
+trend_component_add <- decomp_add$trend
+random_component_add <- decomp_add$random
+decomp_add_trend <- forecast(trend_component_add , h)
+decomp_add_random<-forecast(random_component_add ,h)
+plot(decomp_add_trend, main="Decomposition Forecast-trend component Additive")
+mtext("Forecast based on the trend component only",  side = 1, line = 4)
+plot(decomp_add_random, main="Decomposition Forecast-random-component Additive")
+mtext("Forecast based on the random component only",  side = 1, line = 4)
+
+
+
+
+decomp_mul <- decompose(quotes_ts, type = "multiplicative")
+plot(decomp_mul)
+trend_component_mul <- decomp_mul$trend
+random_component_mul <- decomp_mul$random
+decomp_mul_trend <- forecast(trend_component_mul , h)
+decomp_mul_random<-forecast(random_component_mul ,h)
+plot(decomp_mul_trend, main="Decomposition Forecast-trend component Multiplicative")
+mtext("Captures proportional changes in trend",  side = 1, line = 4)
+plot(decomp_mul_random, main="Decomposition Forecast-random-component Multiplicative")
+mtext("Captures proportional changes in residuals",  side = 1, line = 4)
+
+
+rmse_naive <- accuracy(naive_forecast)[ ,"RMSE"]
+rmse_mean <- accuracy(mean_forecast)[ ,"RMSE"]
+rmse_Holt_Winters_forecast <- accuracy(forecast_HW)[ ,"RMSE"]
+rmse_Holt_Winters_drift_forecast <- accuracy(forecast_HW_drift)[ ,"RMSE"]
+rmse_ses_forecast <- accuracy(ses_forecast)[ ,"RMSE"]
+rmse_stl <- accuracy(stl_forecast)[ ,"RMSE"]
+rmse_decomp_add_trend <- accuracy(decomp_add_trend)[ ,"RMSE"]
+rmse_decomp_add_random <- accuracy(decomp_add_random)[ ,"RMSE"]
+rmse_decomp_mul_trend <- accuracy(decomp_mul_trend)[ ,"RMSE"]
+rmse_decomp_mul_random <- accuracy(decomp_mul_random)[ ,"RMSE"]
+
+cat("\nRMSE for Each Model:\n")
+cat("\nNaive Forecast RMSE:", rmse_naive, "\n")
+cat("Mean Forecast RMSE:", rmse_mean, "\n")
+cat("Holt-Winters Forecast RMSE:", rmse_Holt_Winters_forecast, "\n")
+cat("Holt-Winters with Drift RMSE:", rmse_Holt_Winters_drift_forecast, "\n")
+cat("Simple Exponential Smoothing Forecast RMSE:", rmse_ses_forecast, "\n")
+cat("STL Forecast RMSE:", rmse_stl, "\n")
+cat("Additive Decomposition Trend RMSE:", rmse_decomp_add_trend, "\n")
+cat("Additive Decomposition Random RMSE:", rmse_decomp_add_random, "\n")
+cat("Multiplicative Decomposition Trend RMSE:", rmse_decomp_mul_trend, "\n")
+cat("Multiplicative Decomposition Random RMSE:", rmse_decomp_mul_random, "\n")
+
+model_names <- c("Naive", "Mean", "Holt-Winters", "Holt-Winters with Drift","Simple Exponential Smoothing",
+                 "STL", "Additive Trend", "Additive Random", 
+                 "Multiplicative Trend", "Multiplicative Random")
+
+rmse_values <- c(rmse_naive, rmse_mean, rmse_Holt_Winters_forecast, 
+                 rmse_Holt_Winters_drift_forecast,rmse_ses_forecast, rmse_stl, 
+                 rmse_decomp_add_trend, rmse_decomp_add_random, 
+                 rmse_decomp_mul_trend, rmse_decomp_mul_random)
+
+rmse_table <- data.frame(Model = model_names, RMSE = rmse_values)
+
+rmse_table <- rmse_table[order(rmse_table$RMSE), ]
+
+print(rmse_table)
+
+cat("Decompostion models and Simple Exponential Smoothing could be effective given the week trend and seasonality",  side = 1, line = 4)
+
+library(UsingR)
+
+plot(insurance$Quotes,insurance$TV.advert,pch=19,col="blue")
+
+lm_insurance <- lm(insurance$TV.advert~insurance$Quotes)
+
+lines(insurance$Quotes, lm_insurance$fitted, col="black",lwd=3)
+newInsurance <- data.frame(Quotes = rep(NA, 1e6), TV.advert = rep(NA, 1e6))
+mtext("There is clear linear relation between the monthly advertising expenditure and quotations",side=1,line=4)
+
+newInsurance$Quotes <- rnorm(1e6, mean = mean(insurance$Quotes), sd = sd(insurance$Quotes))
+
+newInsurance$TV.advert <- lm_insurance$coefficients[1] + 
+                          lm_insurance$coefficients[2] * newInsurance$Quotes + 
+                          rnorm(1e6, sd = sd(lm_insurance$residuals))
+
+head(newInsurance)
+
+smoothScatter(newInsurance$Quotes, newInsurance$TV.advert,main = " Quotes vs TV Advert")
+abline(lm_insurance, col = "red", lwd = 3)
+```
