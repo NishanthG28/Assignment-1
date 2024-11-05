@@ -1,0 +1,168 @@
+---
+title: "Midterm"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-11-04"
+output: html_document
+---
+
+```{r}
+library(fpp)
+
+library(readr)
+column_names <- c("Date", "Sales")
+sales <- read_csv("C:/Users/gadda/Downloads/sales.csv", col_names = column_names)
+sales_ts <- ts(sales$Sales , start = c(2020,1) , frequency = 12)
+plot(sales_ts)
+cat(" The time-series plot shows the sales values from 2020 to 2024, there seems to be a slight increase in sales towards the end of the year, this trend repeats every year, also there is an overall upward trend to the data. Although there looks to be fluctuations from 2023.")
+Acf(sales_ts)
+cat(" Every third lag shoes a slight increase from the previous value suggest seasonality, the acf values tend to decrease as the lag increases.")
+summary(sales_ts)
+boxplot(sales_ts)
+cat(" The data shows high variability with values ranging from 1322 to 22397. The mean (8753) is higher than the median (7246), indicating a right-skewed distribution with some large values pulling the average upward. The interquartile range (from 2892 to 14346) shows significant spread, suggesting that the series has substantial fluctuations. The gap between the 3rd quartile and the maximum value suggests possible outliers or occasional high spikes in the data.")
+h=12
+stl_decomp <- stl(sales_ts , s.window  = "periodic")
+plot(stl_decomp)
+cat(" There seems to be seasonality involved in the time-series. There also is a clear upward trend.")
+stl_forecast <- forecast(stl_decomp)
+summary(stl_decomp)
+
+
+decomp_add <- decompose(sales_ts, type="additive")
+plot(decomp_add)
+trend_component_add <- decomp_add$trend
+random_component_add <- decomp_add$random
+decomp_add_trend <- forecast(trend_component_add , h)
+decomp_add_random<-forecast(random_component_add ,h)
+plot(decomp_add_trend, main="Decomposition Forecast-trend component Additive")
+plot(decomp_add_random, main="Decomposition Forecast-random-component Additive")
+
+
+
+
+decomp_mul <- decompose(sales_ts, type = "multiplicative")
+plot(decomp_mul)
+trend_component_mul <- decomp_mul$trend
+random_component_mul <- decomp_mul$random
+decomp_mul_trend <- forecast(trend_component_mul , h)
+decomp_mul_random<-forecast(random_component_mul ,h)
+plot(decomp_mul_trend, main="Decomposition Forecast-trend component Multiplicative")
+plot(decomp_mul_random, main="Decomposition Forecast-random-component Multiplicative")
+
+cat(" Naive-Forecast")
+naive_forecast <- naive(sales_ts , h)
+plot(naive_forecast , main = "Naive Forecast")
+
+plot(naive_forecast$residuals , main = "Naive Forecast-residuals")
+cat(" The residuals are not randomly distributes, shows some pattern. This means that the Naive forecast is being able to capture the seasonality and trend")
+
+hist(naive_forecast$residuals, main = "Histogram of Naive Forecast Residuals")
+cat("Since the histogram is skewed slightly to the left, it means that the Naive Forecast might not be the method in this case.")
+plot(naive_forecast$fitted, main = "Fitted Values vs Residuals")
+lines(naive_forecast$residuals, col = "red")
+cat(" This shows model inaccuracy and un addressed seasonality .")
+plot(naive_forecast, main = "Actual vs Residuals")
+lines(naive_forecast$residuals, col = "red")
+
+Acf(naive_forecast$residuals, main = "ACF of Naive Forecast Residuals")
+
+accuracy(naive_forecast)
+plot(naive_forecast , main = "Naive Forecast")
+
+print(naive_forecast)
+cat(" The Naive forecast gives a flat line ,since the forecast takes the immediate previous value to forecast, the accuracy measures are also high, which is common for Naive method on data which has seasonality and trend.Since the 80%,95% intervals are also wide, there is not much we could predict from this forecast. The future values could increase or decrease. ")
+cat(" Moving Averages ")
+
+MA3_forecast <- ma(sales_ts, order=3)
+MA6_forecast <- ma(sales_ts, order=6)
+MA9_forecast <- ma(sales_ts, order=9)
+plot(sales_ts)
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+cat(" As the order of Moving Averages increase the plot becomes smoother by reducing short term fluctuations.")
+
+forecast_ma6 <- forecast(MA6_forecast,h)
+plot(forecast_ma6)
+cat(" The moving average forecast with an order '6' can be better option as it provides a balance between smoothness and responsiveness.")
+
+
+cat(" Simple Smoothing")
+
+ses_forecast <- ses(sales_ts, h)
+
+summary(ses_forecast)
+
+cat(" Alpha: This is the smoothing parameter. Alpha determines the weight given to recent observations versus past values.An Alpha value of 0.4319 Indicates moderate responsiveness to recent data, balancing between smoothing and adapting to changes.Initial State  :It represents the starting point of the series that the smoothing method builds upon.An initial state of 1472.029  sets the starting baseline for the forecast calculations.Sigma :  Sigma represents the estimated standard deviation of the residuals. Sigma of 2603.101 shows moderate uncertainty in predictions.")
+
+
+plot(ses_forecast$residuals , main = "SES Forecast-residuals")
+hist(ses_forecast$residuals, main = "Histogram of SES Forecast Residuals", xlab = "Residuals")
+cat(" The Histogram is symmetrical indicating a good capture of seasonality.")
+plot(ses_forecast$fitted, main = "Fitted Values vs Residuals")
+lines(ses_forecast$residuals, col = "red")
+
+plot(ses_forecast, main = "Actual vs Residualss")
+lines(ses_forecast$residuals, col = "red")
+
+Acf(ses_forecast$residuals, main = "ACF of SES Forecast Residuals")
+
+accuracy(ses_forecast)
+plot(ses_forecast)
+
+print(ses_forecast)
+cat("The intervals of the SES forecast are higher than the latest data point indicating a higher probability of an upward forecast. The model shows average accuracy measures predicting values closer to the trend for the next year.")
+
+cat(" Holt-Winters forecast")
+
+Holt_Winters_forecast <- HoltWinters(sales_ts )
+forecast_HW <- forecast(Holt_Winters_forecast , h)
+plot(forecast_HW , main = "Holt Winters Forecast")
+summary(forecast_HW)
+
+cat("Alpha (0.1141): Indicates a low level of responsiveness to recent data, giving more weight to the smoothed trend rather than recent fluctuations. Beta (1): This high value signifies that the trend component is updated frequently, making the model highly responsive to changes in trend. Gamma (0.9895): A very high gamma means the model heavily adjusts for seasonality, giving significant weight to recent seasonal patterns.")
+
+plot(forecast_HW$residuals , main = "HW Forecast-residuals")
+hist(forecast_HW$residuals, main = "Histogram of HW Forecast Residuals", xlab = "Residuals")
+cat(" The histogram is almost normally distributed indication seasonality being captured.")
+plot(forecast_HW$fitted, main = "Fitted Values vs Residuals")
+lines(forecast_HW$residuals, col = "red")
+
+plot(forecast_HW, main = "Actual vs Residuals")
+lines(forecast_HW$residuals, col = "red")
+
+Acf(forecast_HW$residuals, main = "ACF of HW Forecast Residuals")
+plot(forecast_HW , main = "Holt Winters Forecast")
+cat("The Holt-Winters plot shows forecasted values (solid line) that incorporate level, trend, and seasonal adjustments, with shaded areas representing 80% and 95% confidence intervals, indicating forecast uncertainty.")
+accuracy(forecast_HW)
+
+print(forecast_HW)
+cat("The model shows moderate accuracy with slight under-forecasting and consistent errors. The model predicts that the time series value in one year will follow the current trend and seasonal pattern, with forecasted values centered around the model’s projected level, trend, and seasonal adjustments.")
+ 
+naive_accuracy <- accuracy(naive_forecast)
+ses_accuracy <- accuracy(ses_forecast)
+hw_accuracy <- accuracy(forecast_HW)
+
+accuracy_table <- data.frame(
+  Method = c("Naive", "SES", "HW"),
+  MAE = c(naive_accuracy[1, "MAE"], ses_accuracy[1, "MAE"], hw_accuracy[1, "MAE"]),
+  RMSE = c(naive_accuracy[1, "RMSE"], ses_accuracy[1, "RMSE"], hw_accuracy[1, "RMSE"]),
+  MAPE = c(naive_accuracy[1, "MAPE"], ses_accuracy[1, "MAPE"], hw_accuracy[1, "MAPE"]),
+  MASE = c(naive_accuracy[1, "MASE"], ses_accuracy[1, "MASE"], hw_accuracy[1, "MASE"])
+)
+cat("Forecast Methods
+Naive: Uses the last observed value as the forecast; useful as a simple benchmark.
+SES: Applies exponential smoothing, best for data without trend or seasonality; it’s responsive to recent changes.
+Holt-Winters (HW): Adapts to level, trend, and seasonality, ideal for series with predictable seasonal patterns.
+Best and Worst by Accuracy
+MAE & MAPE: Best – SES ; Worst – Naive.
+RMSE: Best – HW ; Worst – Naive.
+MASE: Best – SES; Worst – Naive.
+Overall, SES excels in average accuracy, while HW is better for handling seasonal data.")
+
+print(accuracy_table)
+
+
+cat("Conclusion:
+ Based on the forecasts, the time series value will continue to decrease for both 1 year and 2 years.
+ For this time series, SES ranks best for average accuracy, followed by Holt-Winters for handling seasonality, with Naïve performing worst across metrics.")
+```
