@@ -1,0 +1,97 @@
+---
+title: "Assignment-6"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-11-16"
+output: html_document
+---
+
+```{r}
+library(fpp2)
+library(readxl)
+library(forecast)
+library(tidyverse)
+# Load necessary libraries
+library(tidyverse)
+library(lubridate)
+library(forecast)
+
+# Load the dataset
+economic_data <- read.csv("C:/Users/gadda/OneDrive/Desktop/Monthly_Economic_Indicators.csv")
+economic_data$Date <- as.Date(economic_data$Date, format = "%Y-%m-%d")
+
+# Rename columns for clarity (optional)
+colnames(economic_data) <- c("Date", "Unemployment Rate", "CPI", "Retail Sales", "Industrial Production Index")
+
+# View structure and summary of the dataset
+str(economic_data)
+summary(economic_data)
+
+cor(economic_data[,-1])
+pairs(economic_data[,-1], main = "Pair Plot of Economic Indicators")
+
+hist(economic_data$`Unemployment Rate`, 
+     main = "Histogram of Unemployment Rate", 
+     xlab = "Unemployment Rate", col = "lightblue")
+cat("As we can see all the features have linear relationship with one and other.")
+
+plot(`Unemployment Rate` ~ `Retail Sales`, data = economic_data, 
+     xlab = "Retail Sales (Billion $)", ylab = "Unemployment Rate",
+     main = "Unemployment Rate vs Retail Sales")
+
+fit <- lm(`Unemployment Rate` ~ `Retail Sales`, data = economic_data)
+summary(fit)
+anova(fit)
+cat("The t-value for Retail Sales (41.891) is extremely high, indicating strong evidence that Retail Sales significantly impacts the response variable. Its near-zero p-value (< 2e-16) confirms this significance, while the small standard error (0.0003441) suggests high precision in the coefficient estimate.")
+cat("Industrial Production Index and Retail Sales have a strong, statistically significant impact on Unemployment Rate.
+CPI does not appear to be a significant predictor.")
+cat("The model fits the data extremely well (R² = 1), but this level of fit may indicate overfitting or multicollinearity between predictors.")
+
+plot(jitter(`Unemployment Rate`) ~ jitter(`Retail Sales`), 
+     data = economic_data, 
+     xlab = "Retail Sales (Billion $)", ylab = "Unemployment Rate", 
+     main = "Regression: Unemployment Rate vs Retail Sales")
+abline(fit, col = "blue")
+
+res <- residuals(fit)
+plot(jitter(res) ~ jitter(economic_data$`Retail Sales`), 
+     ylab = "Residuals", xlab = "Retail Sales (Billion $)", 
+     main = "Residuals vs Retail Sales")
+abline(0, 0, col = "red")
+cat("Since the residuals are evenly scaterred aroung zero, showing no patterns, the model could be termed a good fit.")
+
+par(mfrow = c(1, 2))
+fit2 <- lm(log(`Unemployment Rate`) ~ log(`Retail Sales`), data = economic_data)
+cat("Log transformation help in further linearizing the relationship, giving us a better fit")
+
+plot(jitter(`Unemployment Rate`) ~ jitter(`Retail Sales`), 
+     xlab = "Retail Sales (Billion $)", ylab = "Unemployment Rate", 
+     data = economic_data, main = "Log-Transformed Fit")
+lines(1:500, exp(fit2$coef[1] + fit2$coef[2] * log(1:500)), col = "blue")
+
+res2 <- residuals(fit2)
+par(mfrow = c(1, 1))
+plot(jitter(res2) ~ jitter(log(economic_data$`Retail Sales`)), 
+     ylab = "Residuals", xlab = "log(Retail Sales (Billion $))", 
+     main = "Residuals for Log-Transformed Fit")
+
+
+
+mfit <- lm(`Unemployment Rate` ~ CPI + `Industrial Production Index` + `Retail Sales`, 
+           data = economic_data)
+summary(mfit)
+cat("The regression model shows that Industrial Production Index and Retail Sales are significant predictors of Unemployment Rate, with small standard errors, high t-values, and p-values < 0.001, indicating strong relationships. However, CPI is not significant, as its high p-value (0.48) suggests no substantial effect. The model fits exceptionally well, explaining nearly 100% of the variance (R-squared = 1), though this may indicate overfitting. Residual analysis shows a good fit with minimal deviations.")
+
+par(mfrow = c(2, 2))
+plot(residuals(mfit) ~ economic_data$CPI, xlab = "CPI", ylab = "Residuals")
+plot(residuals(mfit) ~ economic_data$`Industrial Production Index`, xlab = "Industrial Production Index", ylab = "Residuals")
+plot(residuals(mfit) ~ economic_data$`Retail Sales`, xlab = "Retail Sales (Billion $)", ylab = "Residuals")
+plot(fitted(mfit), residuals(mfit), xlab = "Fitted Values", ylab = "Residuals")
+
+# Influence measures
+cooks.distance(mfit)
+hatvalues(mfit)
+
+# Regression diagnostic plots
+plot(mfit)
+
+```
