@@ -1,0 +1,217 @@
+---
+title: "Assignment-7"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-11-22"
+output: html_document
+---
+
+```{r}
+
+library(dplyr)
+library(forecast)
+library(ggplot2)
+
+economic_data <- read.csv("C:/Users/gadda/OneDrive/Desktop/Monthly_Economic_Indicators.csv")
+# Clean and format the data
+economic_data <- economic_data %>%
+  select(Date, `Unemployment.Rate`, `Consumer.Price.Index..CPI.`, `Retail.Sales`, `Industrial.Production.Index`) %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
+
+# Create time series for each metric
+unemployment_ts <- ts(economic_data$Unemployment.Rate, start = c(2000, 1), frequency = 12)
+cpi_ts <- ts(economic_data$Consumer.Price.Index..CPI., start = c(2000, 1), frequency = 12)
+retail_sales_ts <- ts(economic_data$Retail.Sales, start = c(2000, 1), frequency = 12)
+industrial_index_ts <- ts(economic_data$Industrial.Production.Index, start = c(2000, 1), frequency = 12)
+
+# Plot the time series
+par(mfrow = c(2, 2))
+plot(unemployment_ts, main = "Unemployment Rate", xlab = "Year", ylab = "Rate")
+ndiffs_required_unemployment <- ndiffs(unemployment_ts)
+print(paste("Number of differences required for stationarity:", ndiffs_required_unemployment))
+tsdisplay(unemployment_ts, main = "Original Time Series: Unemployment Rate")
+unemployment_ts_diff1 <- diff(unemployment_ts, differences = 1)
+plot(unemployment_ts_diff1, main = "First-Order Differenced: Unemployment Rate", ylab = "Differenced Values")
+tsdisplay(unemployment_ts_diff1, main = "ACF and PACF: Differenced Unemployment Rate")
+
+plot(cpi_ts, main = "Consumer Price Index", xlab = "Year", ylab = "CPI")
+ndiffs_required_cpi <- ndiffs(cpi_ts)
+print(paste("Number of differences required for stationarity:", ndiffs_required_cpi))
+tsdisplay(cpi_ts, main = "Original Time Series: Unemployment Rate")
+cpi_ts_diff1 <- diff(cpi_ts, differences = 1)
+plot(cpi_ts_diff1, main = "First-Order Differenced: Consumer Price Index", ylab = "Differenced Values")
+tsdisplay(cpi_ts_diff1, main = "ACF and PACF: Differenced Consumer Price Index")
+
+
+plot(retail_sales_ts, main = "Retail Sales", xlab = "Year", ylab = "Sales")
+ndiffs_required_retail <- ndiffs(retail_sales_ts)
+print(paste("Number of differences required for stationarity:", ndiffs_required_retail))
+tsdisplay(retail_sales_ts, main = "Original Time Series: Retail Sales")
+retail_sales_ts_diff1 <- diff(retail_sales_ts, differences = 1)
+plot(retail_sales_ts_diff1, main = "First-Order Differenced: Retail Sales", ylab = "Differenced Values")
+tsdisplay(retail_sales_ts_diff1, main = "ACF and PACF: Differenced Retail Sales")
+
+
+plot(industrial_index_ts, main = "Industrial Production Index", xlab = "Year", ylab = "Index")
+ndiffs_required_industrial <- ndiffs(industrial_index_ts)
+print(paste("Number of differences required for stationarity:", ndiffs_required_industrial))
+tsdisplay(industrial_index_ts, main = "Original Time Series: Unemployment Rate")
+industrial_index_ts_diff1 <- diff(industrial_index_ts, differences = 1)
+plot(industrial_index_ts_diff1, main = "First-Order Differenced: Unemployment Rate", ylab = "Differenced Values")
+tsdisplay(industrial_index_ts_diff1, main = "ACF and PACF: Differenced Unemployment Rate")
+
+cat("Each time series (Unemployment Rate, CPI, Retail Sales, Industrial Production Index) required one difference to achieve stationarity, indicating the presence of a trend or seasonal pattern.")
+
+
+# Fit ARIMA models for each series
+unemployment_model <- auto.arima(unemployment_ts, trace = TRUE, stepwise = FALSE)
+cpi_model <- auto.arima(cpi_ts, trace = TRUE, stepwise = FALSE)
+retail_sales_model <- auto.arima(retail_sales_ts, trace = TRUE, stepwise = FALSE)
+industrial_index_model <- auto.arima(industrial_index_ts, trace = TRUE, stepwise = FALSE)
+
+# Summarize the models
+summary(unemployment_model)
+summary(cpi_model)
+summary(retail_sales_model)
+summary(industrial_index_model)
+
+cat(" All models selected were ARIMA(0,0,0)(0,1,0)[12] with drift, meaning:
+ - No autoregressive (AR) or moving average (MA) terms were required.
+ - A seasonal difference (period = 12) was applied to address yearly seasonality.
+ - Drift terms captured linear trends in the data.")
+
+
+# Forecast for the next 12 months for each series
+unemployment_forecast <- forecast(unemployment_model, h = 12)
+cpi_forecast <- forecast(cpi_model, h = 12)
+retail_sales_forecast <- forecast(retail_sales_model, h = 12)
+industrial_index_forecast <- forecast(industrial_index_model, h = 12)
+
+# Plot the forecasts
+par(mfrow = c(2, 2))
+plot(unemployment_forecast, main = "Unemployment Rate Forecast")
+plot(cpi_forecast, main = "CPI Forecast")
+plot(retail_sales_forecast, main = "Retail Sales Forecast")
+plot(industrial_index_forecast, main = "Industrial Production Index Forecast")
+
+
+cat(" Forecasting:
+- Unemployment Rate: Forecast predicts a steady upward trend with minimal uncertainty.
+- CPI: Forecast shows a slight increase over the next 5 months, remaining stable overall.
+- Retail Sales: Anticipates a sharp drop in January 2025, followed by gradual recovery.
+- Industrial Production Index: Forecast remains stable with minor fluctuations.")
+
+
+# Residuals for each ARIMA model
+unemployment_residuals <- residuals(unemployment_model)
+cpi_residuals <- residuals(cpi_model)
+retail_sales_residuals <- residuals(retail_sales_model)
+industrial_index_residuals <- residuals(industrial_index_model)
+
+# Data frame to combine residuals for easier analysis
+residuals_df <- data.frame(
+  Time = time(unemployment_residuals),
+  Unemployment = as.numeric(unemployment_residuals),
+  CPI = as.numeric(cpi_residuals),
+  Retail_Sales = as.numeric(retail_sales_residuals),
+  Industrial_Index = as.numeric(industrial_index_residuals)
+)
+
+# Plot Residuals
+par(mfrow = c(2, 2))
+plot(unemployment_residuals, main = "Residuals: Unemployment Rate", ylab = "Residuals", col = "blue")
+abline(h = 0, col = "red", lty = 2)
+plot(cpi_residuals, main = "Residuals: CPI", ylab = "Residuals", col = "green")
+abline(h = 0, col = "red", lty = 2)
+plot(retail_sales_residuals, main = "Residuals: Retail Sales", ylab = "Residuals", col = "purple")
+abline(h = 0, col = "red", lty = 2)
+plot(industrial_index_residuals, main = "Residuals: Industrial Index", ylab = "Residuals", col = "orange")
+abline(h = 0, col = "red", lty = 2)
+
+
+# Histogram of Residuals
+par(mfrow = c(2, 2))
+hist(unemployment_residuals, main = "Histogram: Unemployment Residuals", col = "blue", xlab = "Residuals")
+hist(cpi_residuals, main = "Histogram: CPI Residuals", col = "green", xlab = "Residuals")
+hist(retail_sales_residuals, main = "Histogram: Retail Sales Residuals", col = "purple", xlab = "Residuals")
+hist(industrial_index_residuals, main = "Histogram: Industrial Index Residuals", col = "orange", xlab = "Residuals")
+cat("Residuals are centered around zero, as shown in the plots and histograms, indicating no significant bias.")
+
+
+# ACF Plots for Residuals
+par(mfrow = c(2, 2))
+Acf(unemployment_residuals, main = "ACF: Unemployment Residuals")
+Acf(cpi_residuals, main = "ACF: CPI Residuals")
+Acf(retail_sales_residuals, main = "ACF: Retail Sales Residuals")
+Acf(industrial_index_residuals, main = "ACF: Industrial Index Residuals")
+cat(" ACF plots reveal some autocorrelation in the residuals, which suggests the models might not fully capture all dependencies in the data.")
+
+# Ljung-Box Test for Residuals
+unemployment_lb <- Box.test(unemployment_residuals, lag = 20, type = "Ljung-Box")
+cpi_lb <- Box.test(cpi_residuals, lag = 20, type = "Ljung-Box")
+retail_sales_lb <- Box.test(retail_sales_residuals, lag = 20, type = "Ljung-Box")
+industrial_index_lb <- Box.test(industrial_index_residuals, lag = 20, type = "Ljung-Box")
+
+print("Ljung-Box Test Results:")
+print(unemployment_lb)
+print(cpi_lb)
+print(retail_sales_lb)
+print(industrial_index_lb)
+cat(" The Ljung-Box test (p-values < 0.05) confirms significant autocorrelation in the residuals, indicating room for model improvement.")
+
+# Residual Statistics
+residual_stats <- data.frame(
+  Metric = c("Unemployment", "CPI", "Retail Sales", "Industrial Index"),
+  Variance = c(var(unemployment_residuals), var(cpi_residuals), var(retail_sales_residuals), var(industrial_index_residuals)),
+  Mean = c(mean(unemployment_residuals), mean(cpi_residuals), mean(retail_sales_residuals), mean(industrial_index_residuals)),
+  SD = c(sd(unemployment_residuals), sd(cpi_residuals), sd(retail_sales_residuals), sd(industrial_index_residuals))
+)
+print("Residual Statistics:")
+print(residual_stats)
+cat("Residual statistics (mean, variance, standard deviation) are minimal, suggesting the models perform well overall.")
+
+# Forecasting for the next 5 months
+unemployment_forecast <- forecast(unemployment_model, h = 5)
+cpi_forecast <- forecast(cpi_model, h = 5)
+retail_sales_forecast <- forecast(retail_sales_model, h = 5)
+industrial_index_forecast <- forecast(industrial_index_model, h = 5)
+
+# Plot the forecasts
+par(mfrow = c(2, 2))
+plot(unemployment_forecast, main = "5-Month Forecast: Unemployment Rate", xlab = "Year", ylab = "Rate")
+plot(cpi_forecast, main = "5-Month Forecast: CPI", xlab = "Year", ylab = "CPI")
+plot(retail_sales_forecast, main = "5-Month Forecast: Retail Sales", xlab = "Year", ylab = "Sales")
+plot(industrial_index_forecast, main = "5-Month Forecast: Industrial Index", xlab = "Year", ylab = "Index")
+
+# Print the forecast results
+print("Unemployment Rate Forecast:")
+print(unemployment_forecast)
+
+print("CPI Forecast:")
+print(cpi_forecast)
+
+print("Retail Sales Forecast:")
+print(retail_sales_forecast)
+
+print("Industrial Production Index Forecast:")
+print(industrial_index_forecast)
+
+# Calculate accuracy for each ARIMA model
+unemployment_accuracy <- accuracy(unemployment_forecast)
+cpi_accuracy <- accuracy(cpi_forecast)
+retail_sales_accuracy <- accuracy(retail_sales_forecast)
+industrial_index_accuracy <- accuracy(industrial_index_forecast)
+
+# Print accuracy measures
+print("Unemployment Rate Model Accuracy:")
+print(unemployment_accuracy)
+
+print("CPI Model Accuracy:")
+print(cpi_accuracy)
+
+print("Retail Sales Model Accuracy:")
+print(retail_sales_accuracy)
+
+print("Industrial Production Index Model Accuracy:")
+print(industrial_index_accuracy)
+
+```
