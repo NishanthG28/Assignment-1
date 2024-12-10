@@ -1,0 +1,369 @@
+---
+title: "Final Term"
+author: "ng765@scarletmail.rutgers.edu"
+date: "2024-11-04"
+output: html_document
+---
+
+```{r}
+library(fpp)
+
+library(readr)
+column_names <- c("Date", "Sales")
+sales <- read_csv("C:/Users/gadda/Downloads/TOTALSA.csv", col_names = column_names)
+sales$Sales <- as.numeric(sales$Sales)
+
+sales <- sales[!is.na(sales$Sales), ]
+
+sales_old_ts <- ts(sales$Sales , start = c(2019,1) , frequency = 12)
+plot(sales_old_ts)
+
+sales_ts <- window(sales_old_ts, start = c(2022,1))
+plot(sales_ts, main = "Sales Time Series from 2022", ylab = "Sales", xlab = "Year")
+
+cat(" The time-series plot shows the sales values from 2019 to 2024, there seems to be a hude dip in sales in 2020 and 2021, covid is the most probable reason for the dip. Therefore we would cut the data at 2022 adn consider it from then. The data does not seem to have any trend or seasonality from the timeseries plot")
+
+Acf(sales_ts)
+summary(Acf(sales_ts))
+cat("The ACF plot also confirms the absence of seasonality.")
+summary(sales_ts)
+boxplot(sales_ts)
+cat(" The data does not show high variability with values ranging from 13.29 to 16.45. The mean (15.18) is almost same as the median (15.47), indicating a unifrom distribution skewed slightly towards the right. The gap between the 3rd quartile and the maximum value is less suggesting slight increase in sales towards the end.")
+h=12
+stl_decomp <- stl(sales_ts , s.window  = "periodic")
+plot(stl_decomp)
+cat(" There seems to be seasonality involved in the time-series. There also is a clear upward trend.")
+stl_forecast <- forecast(stl_decomp)
+summary(stl_decomp)
+
+plot(sales_ts)
+
+
+
+seasonally_adjusted <- seasadj(stl_decomp)
+plot(sales_ts, type = "l", col = "blue", lwd = 2, 
+     main = "Actual vs Seasonally Adjusted Sales",
+     xlab = "Time", ylab = "Sales")
+lines(seasonally_adjusted, col = "red", lwd = 2)
+legend("topleft", legend = c("Actual Sales", "Seasonally Adjusted"), 
+       col = c("blue", "red"), lty = 1, cex = 0.8)
+cat(" The STL decompostition tells us something else regarding the seasonality, since it not a flat line, there appears to be seasonality in the timeseries.")
+cat("The decomposition seems to be additive.")
+seasonal_values <- stl_decomp$time.series[, "seasonal"]
+print(seasonal_values)
+cat("Above given are the seasonal monthly values.")
+cat("April seems to the month with a high time series value and may seems to be the month with a low time series value. April might correspond to easter sales etc and May being a holiday season could be the reason with low sales. ")
+h=12
+decomp_add <- decompose(sales_ts, type="additive")
+plot(decomp_add)
+trend_component_add <- decomp_add$trend
+random_component_add <- decomp_add$random
+decomp_add_trend <- forecast(trend_component_add , h)
+decomp_add_random<-forecast(random_component_add ,h)
+plot(decomp_add_trend, main="Decomposition Forecast-trend component Additive")
+plot(decomp_add_random, main="Decomposition Forecast-random-component Additive")
+
+
+
+
+decomp_mul <- decompose(sales_ts, type = "multiplicative")
+plot(decomp_mul)
+trend_component_mul <- decomp_mul$trend
+random_component_mul <- decomp_mul$random
+decomp_mul_trend <- forecast(trend_component_mul , h)
+decomp_mul_random<-forecast(random_component_mul ,h)
+plot(decomp_mul_trend, main="Decomposition Forecast-trend component Multiplicative")
+plot(decomp_mul_random, main="Decomposition Forecast-random-component Multiplicative")
+
+cat(" Naive-Forecast")
+naive_forecast <- naive(sales_ts , h)
+plot(naive_forecast , main = "Naive Forecast")
+
+plot(naive_forecast$residuals ,type="p", main = "Naive Forecast-residuals")
+cat(" The residuals are randomly distributed. This suggests that the naive forecast model has captured all systematic information")
+
+hist(naive_forecast$residuals, main = "Histogram of Naive Forecast Residuals")
+cat("Since the histogram is normally distributed, it means that the Naive Forecast might be a good method in this case.")
+plot(naive_forecast$fitted, main = "Fitted Values vs Residuals")
+points(naive_forecast$residuals, col = "red")
+cat(" This shows model inaccuracy and un addressed seasonality .")
+plot(naive_forecast, main = "Actual vs Residuals")
+points(naive_forecast$residuals, col = "red")
+
+cat(" The residuals are much smaller than the actual/fitted values, indicating that errors are relatively small.As a result, residual variations may not be easily visible on the same scale as the fitted/actual data.")
+Acf(naive_forecast$residuals, main = "ACF of Naive Forecast Residuals")
+
+accuracy(naive_forecast)
+plot(naive_forecast , main = "Naive Forecast")
+
+print(naive_forecast)
+cat(" The Naive forecast gives a flat line ,since the forecast takes the immediate previous value to forecast, the accuracy measures are also high, which is common for Naive method on data which has seasonality and trend.The forecasts have a small bias (ME near zero) and low average errors (MAE ~0.51, MAPE ~3.4%), which is fairly good. The MASE of 0.32 indicates this model outperforms a naive benchmark. However, the negative lag-1 autocorrelation in residuals (-0.4357) suggests leftover patterns that a more complex model might improve upon.")
+
+cat(" Moving Averages ")
+
+MA3_forecast <- ma(sales_ts, order=3)
+MA6_forecast <- ma(sales_ts, order=6)
+MA9_forecast <- ma(sales_ts, order=9)
+plot(sales_ts)
+lines(MA3_forecast, col="red")
+lines(MA6_forecast, col="blue")
+lines(MA9_forecast, col="green")
+cat(" As the order of Moving Averages increase the plot becomes smoother by reducing short term fluctuations.")
+
+forecast_ma6 <- forecast(MA6_forecast,h)
+plot(forecast_ma6)
+cat(" The moving average forecast with an order '6' can be better option as it provides a balance between smoothness and responsiveness.")
+
+
+cat(" Simple Smoothing")
+
+ses_forecast <- ses(sales_ts, h)
+
+summary(ses_forecast)
+
+cat(" The value of alpha is 0.5558, meaning the model gives about 55.58% weight to the most recent data point in smoothing.The initial state is l = 14.5655, representing the starting level of the time series.Sigma is 0.5893, indicating the estimated standard deviation of the model’s residuals.A higher sigma suggests greater uncertainty (or variability) in the forecast errors.")
+
+
+plot(ses_forecast$residuals ,type="p", main = "SES Forecast-residuals")
+cat("Residuals are randomly distributed")
+hist(ses_forecast$residuals, main = "Histogram of SES Forecast Residuals", xlab = "Residuals")
+cat(" The Histogram is not symmetrical indicating a bad capture of seasonality.")
+plot(ses_forecast$fitted, main = "Fitted Values vs Residuals")
+points(ses_forecast$residuals, col = "red")
+cat("The residuals in this case are also low, indicating that errors are relatively small.As a result, residual variations may not be easily visible on the same scale as the fitted/actual data.")
+
+plot(ses_forecast, main = "Actual vs Residualss")
+lines(ses_forecast$residuals, col = "red")
+
+Acf(ses_forecast$residuals, main = "ACF of SES Forecast Residuals")
+
+accuracy(ses_forecast)
+plot(ses_forecast)
+
+print(ses_forecast)
+cat("The model has a relatively low error rate, with a MAPE of about 2.9%, indicating that on average, the forecasts deviate from actual values by around 2.9%. This is generally considered reasonably good accuracy.  In one year’s time, the forecasted value is approximately 16.02361. This represents the model’s best guess for the future level of the series.  The forecast remains flat, which is typical of simple exponential smoothing when no strong trend is detected. Additionally, the negative autocorrelation in the residuals suggests the model has accounted for much of the underlying pattern, leaving residuals that appear more like random noise.")
+
+cat(" Holt-Winters forecast")
+
+Holt_Winters_forecast <- HoltWinters(sales_ts )
+forecast_HW <- forecast(Holt_Winters_forecast , h)
+plot(forecast_HW , main = "Holt Winters Forecast")
+summary(forecast_HW)
+
+cat("Alpha is the smoothing parameter for the level. A value of ~0.39 means the model places moderate weight on recent data when updating the underlying level of the series. Beta is the trend smoothing parameter. A value of 0 indicates that the model is not adjusting the trend component over time, effectively treating the trend as constant or negligible. Gamma is the seasonal smoothing parameter. A value of 0 suggests the model is not re-estimating the seasonal pattern, keeping it fixed from the initial estimates without further updating as new data arrives. The initial level of about 16.32 sets the starting baseline, while the initial trend of about 0.16 indicates the initial rate of change in the series. The seasonal factors (s1 through s12) represent the initial monthly seasonal adjustments, where positive values suggest periods above the baseline and negative values indicate periods below it. With a sigma value approximated by the RMSE (~0.80), we have a measure of the residual variability and the inherent uncertainty in the forecast errors.")
+
+plot(forecast_HW$residuals , main = "HW Forecast-residuals")
+hist(forecast_HW$residuals, main = "Histogram of HW Forecast Residuals", xlab = "Residuals")
+cat(" The histogram is not symmetrically distributed indicating seasonality not being captured.")
+plot(forecast_HW$fitted, main = "Fitted Values vs Residuals")
+points(forecast_HW$residuals, col = "red")
+
+plot(forecast_HW, main = "Actual vs Residuals")
+points(forecast_HW$residuals, col = "red")
+
+Acf(forecast_HW$residuals, main = "ACF of HW Forecast Residuals")
+plot(forecast_HW , main = "Holt Winters Forecast")
+cat("The Holt-Winters plot shows forecasted values (solid line) that incorporate level, trend, and seasonal adjustments, with shaded areas representing 80% and 95% confidence intervals, indicating forecast uncertainty.")
+accuracy(forecast_HW)
+
+print(forecast_HW)
+cat("The model’s forecasts are nearly unbiased (ME ~0.005), with moderate errors (RMSE ~0.80, MAE ~0.59) and about 3.7% average percentage error. A MASE of ~0.37 suggests improvement over a naive model, and the near-zero ACF1 indicates few leftover patterns in the residuals.")
+ 
+naive_accuracy <- accuracy(naive_forecast)
+ses_accuracy <- accuracy(ses_forecast)
+hw_accuracy <- accuracy(forecast_HW)
+
+accuracy_table <- data.frame(
+  Method = c("Naive", "SES", "HW"),
+  MAE = c(naive_accuracy[1, "MAE"], ses_accuracy[1, "MAE"], hw_accuracy[1, "MAE"]),
+  RMSE = c(naive_accuracy[1, "RMSE"], ses_accuracy[1, "RMSE"], hw_accuracy[1, "RMSE"]),
+  MAPE = c(naive_accuracy[1, "MAPE"], ses_accuracy[1, "MAPE"], hw_accuracy[1, "MAPE"]),
+  MASE = c(naive_accuracy[1, "MASE"], ses_accuracy[1, "MASE"], hw_accuracy[1, "MASE"])
+)
+
+
+print(accuracy_table)
+
+cat("Among the three methods, SES produces the lowest MAE, RMSE, and MAPE, indicating it is the most accurate. Naive forecasting has moderate error levels, coming in second to SES. Holt-Winters shows higher errors across the metrics, suggesting it performed worse than both SES and Naive. In terms of MASE, SES also outperforms the others, indicating a noticeable improvement over a naive baseline.")
+
+
+
+
+
+
+
+plot(sales_ts, main = "Monthly Sales", xlab = "Year", ylab = "Sales")
+ndiffs_required_ts <- ndiffs(sales_ts)
+print(paste("Number of differences required for stationarity:", ndiffs_required_ts))
+cat(" Nees a difference of 1 to make it stationary.")
+tsdisplay(sales_ts, main = "Original Time Series: Monthly Sales")
+ts_diff1 <- diff(sales_ts, differences = 1)
+plot(ts_diff1, main = "First-Order Differenced: Monthly Sales", ylab = "Differenced Values")
+tsdisplay(ts_diff1, main = "ACF and PACF: Differenced Monthly Crime")
+
+ts_arima_model <- auto.arima(sales_ts, trace = TRUE, seasonal = TRUE, stepwise = FALSE)
+summary(ts_arima_model)
+cat("The chosen ARIMA model is ARIMA(3,1,0), which was identified after evaluating multiple candidate models. The model’s parameters include three AR terms with estimated coefficients around -0.456, -0.121, and 0.401. The residual variance (sigma²) is approximately 0.278, indicating moderate variability in the residuals. The AIC (~44.77) and BIC (~49.65) values suggest this model fits the data reasonably well. Accuracy measures on the training set, such as an RMSE of about 0.485 and a MAPE of roughly 2.48%, indicate that the model provides relatively accurate forecasts. Additionally, the near-zero ACF1 of the residuals suggests little autocorrelation is left, implying the model has captured the essential temporal structure.")
+cat("The ARIMA(3,1,0) model can be written as:\n",
+    "W_t = -0.4560*W_{t-1} - 0.1214*W_{t-2} + 0.4010*W_{t-3} + e_t\n\n",
+    "Where W_t = Y_t - Y_{t-1}, thus:\n",
+    "(Y_t - Y_{t-1}) = -0.4560*(Y_{t-1} - Y_{t-2}) - 0.1214*(Y_{t-2} - Y_{t-3}) + 0.4010*(Y_{t-3} - Y_{t-4}) + e_t")
+
+ts_arima_forecast <- forecast(ts_arima_model, h = 12)
+plot(ts_arima_forecast, main = "Monthly SalesForecast")
+
+ts_arima_residuals <- residuals(ts_arima_model)
+
+par(mfrow = c(2,2))
+plot(ts_arima_residuals, main = "Residuals of ARIMA Model", ylab = "Residuals", col = "blue")
+abline(h = 0, col = "red", lty = 2)
+
+cat(" Residuals should be random with no visible pattern or trend. A non-random pattern suggests that some systematic information remains in the data and has not been captured by the model.")
+hist(ts_arima_residuals, main = "Histogram of ARIMA Residuals", col = "skyblue", xlab = "Residuals")
+cat("Histogram is normally distributed indicating good capture of seasonality.")
+
+Acf(ts_arima_residuals, main = "ACF of ARIMA Residuals")
+
+ljung_box_test <- Box.test(ts_arima_residuals, lag = 20, type = "Ljung-Box")
+print("Ljung-Box Test Results:")
+print(ljung_box_test)
+cat("The Box-Ljung test checks for autocorrelation in the residuals of a time series model. A high p-value (0.9541) means we cannot reject the null hypothesis that there is no autocorrelation. In other words, the residuals appear to be random, suggesting the model has adequately captured the time-dependent structure of the data.")
+
+residual_stats_arima <- data.frame(
+  Metric = c("Mean", "Variance", "Standard Deviation"),
+  Value = c(mean(ts_arima_residuals), var(ts_arima_residuals), sd(ts_arima_residuals))
+)
+print("Residual Statistics:")
+print(residual_stats_arima)
+cat("The residuals have a small positive mean of about 0.0545, indicating a slight bias in the model’s forecasts. The variance of approximately 0.2415 leads to a standard deviation of about 0.4915, which shows a moderate level of dispersion around the mean. Overall, these statistics suggest that the residuals are relatively stable and not excessively volatile.")
+
+par(mfrow = c(1, 1))
+fitted_arima_values <- fitted(ts_arima_model)
+
+# Plot of fitted values vs. residuals
+plot(fitted_arima_values, ts_arima_residuals, 
+     main = "Fitted Values vs. Residuals",
+     xlab = "Fitted Values", 
+     ylab = "Residuals", 
+     pch = 19, col = "darkgreen")
+abline(h = 0, col = "red", lty = 2)
+
+cat("Fitted vs. Residuals Plot Interpretation:\n",
+    "The residuals appear randomly scattered around the horizontal line at zero, it indicates that the model has captured the underlying structure of the data well.\n\n")
+
+# Plot of actual values vs. residuals
+plot(sales_ts, ts_arima_residuals, 
+     main = "Actual Values vs. Residuals",
+     xlab = "Actual Values",
+     ylab = "Residuals", 
+     pch = 19, col = "blue")
+abline(h = 0, col = "red", lty = 2)
+
+cat("Actual vs. Residuals Plot Interpretation:\n",
+    "The residuals show no distinct pattern and remain roughly constant in variance across different actual values, it implies that the model’s errors do not depend on the magnitude of the actual data points. A random scatter around zero indicates a well-fitted model.\n")
+
+
+
+plot(sales_ts, col = "blue", lwd = 2, 
+     main = "Observed vs Predicted",
+     ylab = "Monthly Crime", xlab = "Time")
+lines(fitted_arima_values, col = "red", lwd = 2)
+
+legend("topleft", legend = c("Observed", "Predicted"), 
+       col = c("blue", "red"), lty = c(1, 1), lwd = c(2, 2), bty = "n")
+
+
+accuracy_measures <- accuracy(ts_arima_forecast)
+print("Accuracy Measures:")
+print(accuracy_measures)
+cat("The model’s forecasts show a slight positive bias but relatively small errors overall. With a MAPE of about 2.5%, it provides quite accurate predictions on average. Moreover, the near-zero residual autocorrelation suggests it has captured the essential time-dependent patterns.")
+
+one_year_forecast <- forecast(ts_arima_model, h = 12)
+print("One-Year Forecast:")
+print(one_year_forecast)
+plot(one_year_forecast, main = "One-Year  Forecast", 
+     xlab = "Time", ylab = "Values")
+
+
+two_year_forecast <- forecast(ts_arima_model, h = 24)
+print("Two-Year Forecast:")
+print(two_year_forecast)
+plot(two_year_forecast, main = "Two-Year  Forecast", 
+     xlab = "Time", ylab = "Values")
+
+
+
+
+naive_accuracy <- accuracy(naive_forecast)
+ses_accuracy <- accuracy(ses_forecast)
+hw_accuracy <- accuracy(forecast_HW)
+arima_accuracy <- accuracy(ts_arima_forecast)
+
+# Create a summary table including each method’s MAE, RMSE, MAPE, and MASE.
+accuracy_table <- data.frame(
+  Method = c("Naive", "SES", "Holt-Winters", "ARIMA"),
+  MAE = c(naive_accuracy[1, "MAE"], 
+          ses_accuracy[1, "MAE"], 
+          hw_accuracy[1, "MAE"],
+          arima_accuracy[1, "MAE"]),
+  RMSE = c(naive_accuracy[1, "RMSE"], 
+           ses_accuracy[1, "RMSE"], 
+           hw_accuracy[1, "RMSE"],
+           arima_accuracy[1, "RMSE"]),
+  MAPE = c(naive_accuracy[1, "MAPE"], 
+           ses_accuracy[1, "MAPE"], 
+           hw_accuracy[1, "MAPE"],
+           arima_accuracy[1, "MAPE"]),
+  MASE = c(naive_accuracy[1, "MASE"], 
+           ses_accuracy[1, "MASE"], 
+           hw_accuracy[1, "MASE"],
+           arima_accuracy[1, "MASE"])
+)
+
+print("Overall Accuracy Comparison:")
+print(accuracy_table)
+
+cat("\nDefinitions of Each Forecasting Method:\n")
+cat("- Naive Forecast: Uses the most recent observed value as the forecast for all future periods. Useful as a simple benchmark.\n")
+cat("- SES (Simple Exponential Smoothing): Applies exponentially decreasing weights to past observations, focusing on recent data. Useful for data with no clear trend or seasonality.\n")
+cat("- Holt-Winters: Extends exponential smoothing to include trend and seasonal components. Useful for data with both trend and seasonality.\n")
+cat("- ARIMA: A parametric model that uses autoregressive and moving average components on differenced data. Useful for capturing various autocorrelation structures and trends.\n")
+
+cat("\nBest and Worst Methods per Accuracy Measure:\n")
+
+# Identify the best and worst methods for each metric
+metrics <- c("MAE", "RMSE", "MAPE", "MASE")
+
+for (metric in metrics) {
+  values <- accuracy_table[[metric]]
+  best_method <- accuracy_table$Method[which.min(values)]
+  worst_method <- accuracy_table$Method[which.max(values)]
+  cat(metric, ":\n", "  Best: ", best_method, " (", round(min(values),4), ")\n", 
+      "  Worst:", worst_method, " (", round(max(values),4), ")\n", sep="")
+}
+
+cat("Among the four forecasting methods, ARIMA demonstrated the highest accuracy with the lowest MAE (0.37), RMSE (0.485), MAPE (2.48%), and MASE (0.232). SES also performed well, achieving lower error metrics than the Naive and Holt-Winters models. The Naive method showed moderate accuracy, while Holt-Winters had the highest errors across all measures. Overall, ARIMA proved to be the most effective forecasting technique, followed by SES, Naive, and Holt-Winters.")
+
+
+
+naive_vals <- as.numeric(naive_forecast$mean)
+ses_vals <- as.numeric(ses_forecast$mean)
+hw_vals <- as.numeric(forecast_HW$mean)
+arima_vals <- as.numeric(ts_arima_forecast$mean)
+
+forecast_time <- time(naive_forecast$mean)
+
+forecast_summary_df <- data.frame(
+  Date = forecast_time,
+  Naive = naive_vals,
+  SES = ses_vals,
+  Holt_Winters = hw_vals,
+  ARIMA = arima_vals
+)
+
+
+print("Summary of Forecasts for Next One and Two Years:")
+print(forecast_summary_df)
+cat("Based on the analysis and forecasts, the time series values are expected to remain relatively flat over the next year and the following two years, with minor fluctuations depending on the forecasting method used. Among the forecasting techniques evaluated, ARIMA demonstrated the highest accuracy with the lowest MAE, RMSE, MAPE, and MASE values, making it the most reliable method for this data. SES (Simple Exponential Smoothing) ranked second, showing better accuracy than the Naive and Holt-Winters models. The Naive method performed moderately well, serving as a reasonable baseline, while Holt-Winters had the highest errors across all measures, indicating it was the least accurate for this time series. Overall, ARIMA is recommended for forecasting this series due to its superior performance in capturing the underlying patterns and providing more accurate predictions.")
+
+```
